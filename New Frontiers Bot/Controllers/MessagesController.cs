@@ -123,7 +123,7 @@ namespace New_Frontiers_Bot
                 {
                     int quantity = 0;
                     try
-                    {
+                    { 
                         if (userMessage.ToLower().Equals("cancel"))
                         {
                             throw new Exception();
