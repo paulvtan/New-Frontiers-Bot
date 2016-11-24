@@ -127,6 +127,8 @@ namespace New_Frontiers_Bot
                 //===============================
                 #endregion
 
+                
+
                 //CRUDE (Grocery Shopping List Features)---------------------------------
                 //Connected to the EasyTable
                 #region Add row to the shopping list (Create)
@@ -137,7 +139,7 @@ namespace New_Frontiers_Bot
                     string space = "     ";
                     message = "Add item to the shopping list by specifying the following format.";
                     await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
-                    message = "**Quantity**" + space + "**Item**" + space + "**Price**";
+                    message = "**Quantity**" + space + "**Item**" + space + "**Price $**";
                     await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
                     message = "Example: **5 Apple 1.5**";
                     await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
@@ -180,34 +182,30 @@ namespace New_Frontiers_Bot
 
                     userData.SetProperty<bool>("isAdding", false); //Reset this back to false
                     await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
-                    #region show shopping list again
-                    //=====================================================
-                    //Show 'shopping list'.(Show all the items currently in the shopping list) [R (Read)]================================
-                    
-                    
-                        List<ShoppingList> shoppingLists = await AzureManager.AzureManagerInstace.GetShoppingList();
-                        message = ""; //Clear message to be blank  
-                        string space = "     ";
-                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("**Your Grocery Shopping List**"));
-                        int count = 1;
-                        foreach (ShoppingList l in shoppingLists)
-                        {
-                            string individualPrice = "";
-                            string sumPrice = "";
-                            if (l.IndividualPrice != 0) { individualPrice = "($" + l.IndividualPrice + " each)"; }
-                            if (l.IndividualPrice != 0) { sumPrice = "Total: $" + l.SumPrice; }
+                    #region ShoppingListCard Display Again 
+                    Attachment shoppingListCardAttachment;
+                    try
+                    {
+                        List<ShoppingList> shoppingLists1 = await AzureManager.AzureManagerInstace.GetShoppingList(); //Grabbing all the rows from the table.
+                        shoppingListCardAttachment = Controllers.CardBuilding.GetShoppingListCard(shoppingLists1);
+                    }
+                    catch (Exception)
+                    {
+                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Sorry, " + userData.GetProperty<string>("userName") + " Something went wrong."));
+                        return Request.CreateResponse(HttpStatusCode.OK);
+                    }
 
-                            message = "**" + count + ".**  " + l.Quantity + " x " + l.ItemName + space + individualPrice + space + sumPrice;
-                            if (l.StrikeOut) //If the row has strikeOut field marked as 'true', displayed message as strikeout.
-                            {
-                                message = "**" + count + ".**  ~~" + l.Quantity + " x " + l.ItemName + space + individualPrice + space + sumPrice + "~~";
-                            }
-                            await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
-                            count += 1;
-                        }
+                    Activity shoppingListCard = activity.CreateReply("");
+                    shoppingListCard.Recipient = activity.From;
+                    shoppingListCard.Type = "message";
+                    shoppingListCard.Attachments = new List<Attachment>();
+                    shoppingListCard.Attachments.Add(shoppingListCardAttachment);
 
-                        
-                    
+                    await connector.Conversations.ReplyToActivityAsync(shoppingListCard); //Finally reply to user.
+
+
+
+
                     #endregion
                     return Request.CreateResponse(HttpStatusCode.OK);
                 }
@@ -219,7 +217,7 @@ namespace New_Frontiers_Bot
                 #region Show Shopping List (Read)
                 //=====================================================
                 //Show 'shopping list'.(Show all the items currently in the shopping list) [R (Read)]================================
-                if (userMessage.ToLower().Contains("shopping list"))
+                if (userMessage.ToLower().Contains("debug"))
                 {
                     List<ShoppingList> shoppingLists = await AzureManager.AzureManagerInstace.GetShoppingList();
                     message = ""; //Clear message to be blank  
@@ -247,6 +245,33 @@ namespace New_Frontiers_Bot
                 //==================================================================================================================
                 #endregion
 
+                #region ShoppingListCard Display (Read)
+                if (userMessage.ToLower().Contains("shopping list"))
+                {
+                    Attachment shoppingListCardAttachment;
+                    try
+                    {
+                        List<ShoppingList> shoppingLists1 = await AzureManager.AzureManagerInstace.GetShoppingList(); //Grabbing all the rows from the table.
+                        shoppingListCardAttachment = Controllers.CardBuilding.GetShoppingListCard(shoppingLists1);
+                    }
+                    catch (Exception)
+                    {
+                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Sorry, " + userData.GetProperty<string>("userName") + " Something went wrong."));
+                        return Request.CreateResponse(HttpStatusCode.OK);
+                    }
+
+                    Activity shoppingListCard = activity.CreateReply("");
+                    shoppingListCard.Recipient = activity.From;
+                    shoppingListCard.Type = "message";
+                    shoppingListCard.Attachments = new List<Attachment>();
+                    shoppingListCard.Attachments.Add(shoppingListCardAttachment);
+
+                    await connector.Conversations.ReplyToActivityAsync(shoppingListCard); //Finally reply to user.
+                    return Request.CreateResponse(HttpStatusCode.OK);
+
+                }
+                #endregion
+
                 #region Strike out item in the shopping list (Update)
                 //Strike out item in the shopping list (update)=======================
                 if (userMessage.ToLower().Contains("buy")) 
@@ -271,6 +296,31 @@ namespace New_Frontiers_Bot
                     
                     await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(listIndexSelect + ". ~~" + itemName + "~~ has been bought."));
                     await AzureManager.AzureManagerInstace.UpdateShoppingList(updatedList); //Updated the row to the table
+                    #region ShoppingListCard Display Again 
+                    Attachment shoppingListCardAttachment;
+                    try
+                    {
+                        List<ShoppingList> shoppingLists1 = await AzureManager.AzureManagerInstace.GetShoppingList(); //Grabbing all the rows from the table.
+                        shoppingListCardAttachment = Controllers.CardBuilding.GetShoppingListCard(shoppingLists1);
+                    }
+                    catch (Exception)
+                    {
+                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Sorry, " + userData.GetProperty<string>("userName") + " Something went wrong."));
+                        return Request.CreateResponse(HttpStatusCode.OK);
+                    }
+
+                    Activity shoppingListCard = activity.CreateReply("");
+                    shoppingListCard.Recipient = activity.From;
+                    shoppingListCard.Type = "message";
+                    shoppingListCard.Attachments = new List<Attachment>();
+                    shoppingListCard.Attachments.Add(shoppingListCardAttachment);
+
+                    await connector.Conversations.ReplyToActivityAsync(shoppingListCard); //Finally reply to user.
+
+
+
+
+                    #endregion
                     return Request.CreateResponse(HttpStatusCode.OK);
 
                 }
