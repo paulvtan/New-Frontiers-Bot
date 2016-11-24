@@ -34,14 +34,15 @@ namespace New_Frontiers_Bot
                 ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
                 var userMessage = activity.Text;
 
-
+                #region Setting up the state Client
                 //1. Setting up the State Client==========================
 
                 StateClient stateClient = activity.GetStateClient();
                 BotData userData = await stateClient.BotState.GetUserDataAsync(activity.ChannelId, activity.From.Id); //Accessing the bot data of a user.
-
                 //========================================================
+                #endregion
 
+                #region Clear user state using 'clear' command
                 //2. Clear the user state=================================
                 if (userMessage.ToLower().Contains("clear"))
                 {
@@ -51,9 +52,9 @@ namespace New_Frontiers_Bot
                     return Request.CreateResponse(HttpStatusCode.OK);
                 }
                 //=====================================================
-
-
-
+                #endregion
+                  
+                #region Learning the user name
                 //3. (First time) Greeting User and Learn the user name.===============
                 if (!userData.GetProperty<bool>("SendGreeting")) //First time greeting the user.
                 {
@@ -101,9 +102,9 @@ namespace New_Frontiers_Bot
                     }
                 }
                 //=====================================================
+                #endregion
 
-                
-
+                #region DEAD CODE (CREATE)
                 //CRUD MODEL--> Grocery Shopping List Features
 
                 //Add new item to the shopping list. (C [Create])
@@ -223,15 +224,100 @@ namespace New_Frontiers_Bot
 
 
                 }*/
-            
+                #endregion
 
 
+                //CRUDE (Grocery Shopping List Features)---------------------------------
+                //Connected to the EasyTable
+                #region Add row to the shopping list (Create)
+                //====================================================
+                //Add new row to the shopping list.
+                if (userMessage.ToLower().Contains("add item") && (!userData.GetProperty<bool>("isAdding")))
+                {
+                    string space = "     ";
+                    message = "Add item to the shopping list by specifying the following format.";
+                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
+                    message = "**Quantity**" + space + "**Item Name**" + space + "**Price**";
+                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
+                    message = "Example: **5 Apple 1.5**";
+                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
+                    userData.SetProperty<bool>("isAdding", true); //Set this is true so that next input will update.
+                    await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
+                    return Request.CreateResponse(HttpStatusCode.OK);
+                } else if (userData.GetProperty<bool>("isAdding") && userMessage != "")
+                {
+                    try
+                    { 
+                        string itemName = "";
+                        int quantity = 0;
+                        double individualPrice = 0;
+                        double sumPrice = 0;
+                        string[] userInput = userMessage.Split();
+                        itemName = userInput[1] ?? "";
+                        quantity = int.Parse(userInput[0]);
+                        string temp = userInput[2] ?? "0";
+                        individualPrice = int.Parse(temp);
+                        sumPrice = individualPrice * quantity;
+                        message = "**" + quantity + "** x " + itemName + " (each cost **$" + individualPrice + "**) Total: **$" + sumPrice + "** has been added to your shopping list.";
+                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
+                        ShoppingList shoppingList = new ShoppingList()
+                        {
+                            ItemName = itemName,
+                            Quantity = quantity,
+                            IndividualPrice = individualPrice,
+                            SumPrice = sumPrice
+                        };
+
+                        await AzureManager.AzureManagerInstace.AddShoppingList(shoppingList);
+                       
+                    } catch (Exception)
+                    {
+                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Something went wrong, could you please try again?"));
+                        userData.SetProperty<bool>("isAdding", false);
+                        await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
+                        return Request.CreateResponse(HttpStatusCode.OK);
+                    }
+
+                    userData.SetProperty<bool>("isAdding", false); //Reset this back to false
+                    await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
+                    #region show shopping list again
+                    //=====================================================
+                    //Show 'shopping list'.(Show all the items currently in the shopping list) [R (Read)]================================
+                    
+                    
+                        List<ShoppingList> shoppingLists = await AzureManager.AzureManagerInstace.GetShoppingList();
+                        message = ""; //Clear message to be blank  
+                        string space = "     ";
+                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("**Your Grocery Shopping List**"));
+                        int count = 1;
+                        foreach (ShoppingList l in shoppingLists)
+                        {
+                            string individualPrice = "";
+                            string sumPrice = "";
+                            if (l.IndividualPrice != 0) { individualPrice = "($" + l.IndividualPrice + " each)"; }
+                            if (l.IndividualPrice != 0) { sumPrice = "Total: $" + l.SumPrice; }
+
+                            message = "**" + count + ".**  " + l.Quantity + " x " + l.ItemName + space + individualPrice + space + sumPrice;
+                            if (l.StrikeOut) //If the row has strikeOut field marked as 'true', displayed message as strikeout.
+                            {
+                                message = "**" + count + ".**  ~~" + l.Quantity + " x " + l.ItemName + space + individualPrice + space + sumPrice + "~~";
+                            }
+                            await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
+                            count += 1;
+                        }
+
+                        
+                    
+                    #endregion
+                    return Request.CreateResponse(HttpStatusCode.OK);
+                }
 
 
+                //====================================================
+                #endregion
+
+                #region Show Shopping List (Read)
                 //=====================================================
-
-
-
                 //Show 'shopping list'.(Show all the items currently in the shopping list) [R (Read)]================================
                 if (userMessage.ToLower().Contains("shopping list"))
                 {
@@ -258,11 +344,20 @@ namespace New_Frontiers_Bot
                     
                     return Request.CreateResponse(HttpStatusCode.OK);
                 }
+                //==================================================================================================================
+                #endregion
 
+                #region Strike out item in the shopping list (Update)
+                //Strike out item in the shopping list (update)
+
+                //---------------------------------------------
+                #endregion
+                //--------------------------------------------------------------
+
+                //General
+
+                #region Reply to Users saying "hi, hey, hello" and unrecognised command
                 //=====================================================
-
-
-
                 //if user says "hi"
                 if (userMessage.ToLower().Contains("hi") || userMessage.ToLower().Contains("hello") || userMessage.ToLower().Contains("hey"))
                 {
@@ -272,13 +367,13 @@ namespace New_Frontiers_Bot
                 }
 
 
-                //Reply back to user if no command match===================================
+                //Reply back to user if no command match===============
                 name = userData.GetProperty<string>("UserName");
                 await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Sorry I did not understand what you said " + name + "."));
                 await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("You can type *help* to see what I can do for you."));
                 return Request.CreateResponse(HttpStatusCode.OK);
                 //=====================================================
-
+                #endregion
 
 
             }
