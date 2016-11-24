@@ -57,7 +57,7 @@ namespace New_Frontiers_Bot.Controllers
             string cardUrlCross = "https://raw.githubusercontent.com/paulvtan/New-Frontiers-Bot/master/Cross.png";
             List<ReceiptItem> items = new List<ReceiptItem>();
             int count = 1;
-            double total = 0;
+            double tempTotal = 0;
             foreach (ShoppingList l in lists)
             {
                 
@@ -66,12 +66,14 @@ namespace New_Frontiers_Bot.Controllers
                 string labelName = count + ". " + l.ItemName + " (x " + labelQuantity + ")";
                 string labelSumPrice = l.SumPrice + "";
                 string choice = cardUrlCross;
-                if (!l.StrikeOut) { total += l.SumPrice; };
+                if (!l.StrikeOut) { tempTotal += l.SumPrice; };
                 if (l.StrikeOut) { choice = cardUrlTick; }
                 ReceiptItem x = new ReceiptItem(labelName, price: labelPrice + " (" + labelSumPrice + ")", quantity: labelQuantity, image: new CardImage(url: choice));
                 items.Add(x);
                 count++;
             }
+            string total = "$" + tempTotal;
+            if (items.Count() == 0) { total = "The list is empty"; }
 
             CardAction addItemButton = new CardAction()
             {
@@ -84,18 +86,26 @@ namespace New_Frontiers_Bot.Controllers
             {
                 Type = "imBack",
                 Title = "Mark Item As Bought",
-                Value = "mark"
+                Value = "mark item"
             };
 
+            CardAction deleteListButton = new CardAction()
+            {
+                Type = "imBack",
+                Title = "Delete This List",
+                Value = "delete"
+            };
+            
             var card = new ReceiptCard
             {
                 Title = "Shopping List",
                 Items = items,
-                Total = "$" + total,
+                Total = total,
                 Buttons = new List<CardAction>
                 {
                     addItemButton,
-                    buyItemButton
+                    buyItemButton,
+                    deleteListButton
                 }
             };
 
@@ -125,39 +135,11 @@ namespace New_Frontiers_Bot.Controllers
             x = new ReceiptItem("5. Clear User Data", image: new CardImage(url: clearIconUrl));
             items.Add(x);
 
-            CardAction shoppingListButton = new CardAction()
+            CardAction commandPanel = new CardAction()
             {
                 Type = "imBack",
-                Title = "1. Show Shopping List",
-                Value = "shopping list"
-            };
-
-            CardAction addItemButton = new CardAction()
-            {
-                Type = "imBack",
-                Title = "2. Add Item to Shopping List",
-                Value = "add item"
-            };
-
-            CardAction markItemButton = new CardAction()
-            {
-                Type = "imBack",
-                Title = "3. Mark Item Paid",
-                Value = "mark item"
-            };
-
-            CardAction deleteListButton = new CardAction()
-            {
-                Type = "imBack",
-                Title = "4. Delete This List",
-                Value = "delete"
-            };
-
-            CardAction clearUserDataButton = new CardAction()
-            {
-                Type = "imBack",
-                Title = "5. Clear User Data",
-                Value = "clear"
+                Title = "Open Command Panel",
+                Value = "command panel"
             };
 
             var card = new ReceiptCard
@@ -167,11 +149,7 @@ namespace New_Frontiers_Bot.Controllers
                 Total = "5 Commands",
                 Buttons = new List<CardAction>
                 {
-                    shoppingListButton,
-                    addItemButton,
-                    markItemButton,
-                    deleteListButton,
-                    clearUserDataButton
+                    commandPanel
                 }
             };
 

@@ -32,8 +32,13 @@ namespace New_Frontiers_Bot
 
             if (activity.Type == ActivityTypes.Message)
             {
+                
                 ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
                 var userMessage = activity.Text;
+                List<CardAction> buttons = new List<CardAction>();
+                Activity reply = activity.CreateReply("");
+                HeroCard heroCard;
+                Attachment attachment;
 
                 #region Setting up the state Client
                 //1. Setting up the State Client==========================
@@ -90,6 +95,33 @@ namespace New_Frontiers_Bot
                             await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
                             await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Nice to meet you *" + name + "!*"));
                             await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("You can type *help* to see what I can do for you."));
+
+                            #region Help button
+                            Activity reply1 = activity.CreateReply("");
+                            reply1.Recipient = activity.From;
+                            reply1.Type = "message";
+                            reply1.Attachments = new List<Attachment>();
+                            List<CardAction> buttons1 = new List<CardAction>();
+
+                            CardAction helpButton1 = new CardAction()
+                            {
+                                Type = "imBack",
+                                Title = "Help",
+                                Value = "help"
+                            };
+                            buttons1.Add(helpButton1);
+                            var heroCard1 = new HeroCard()
+                            {
+                                Title = "Press 'Help' to Learn More.",
+                                Subtitle = "",
+                                Buttons = buttons1
+                            };
+
+                            Attachment attachment1 = heroCard1.ToAttachment();
+                            reply1.Attachments.Add(attachment1);
+                            await connector.Conversations.ReplyToActivityAsync(reply1); //Finally reply to user.
+                            #endregion
+
                             return Request.CreateResponse(HttpStatusCode.OK);
 
                         } else
@@ -104,30 +136,6 @@ namespace New_Frontiers_Bot
                 }
                 //=====================================================
                 #endregion
-
-                /*
-                #region User type 'help'
-                //Help command===================
-                if (userMessage.ToLower().Contains("help"))
-                {
-                    string message = "**What you can ask me.**";
-                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
-                    message = "**Key word:** *shopping list* to see your shopping list.";
-                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
-                    message = "**Key word:** *add item* to start adding item to your shopping list.";
-                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
-                    message = "**Key word:** *buy [number]* to cross out bought item from the shopping list";
-                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
-                    message = "**Key word:** *clear* to erase states / user data.";
-                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
-                    return Request.CreateResponse(HttpStatusCode.OK);
-                }
-                
-
-
-                //===============================
-                #endregion
-                */
 
                 #region User Type 'help'
                 if (userMessage.ToLower().Contains("help"))
@@ -145,6 +153,71 @@ namespace New_Frontiers_Bot
                 }
                 #endregion
 
+                #region 'help' Command Panel
+                if (userMessage.ToLower().Contains("command panel"))
+                {
+                    reply = activity.CreateReply("");
+                    reply.Recipient = activity.From;
+                    reply.Type = "message";
+                    reply.Attachments = new List<Attachment>();
+                    buttons = new List<CardAction>();
+
+                    CardAction shoppingListButton = new CardAction()
+                    {
+                        Type = "imBack",
+                        Title = "1. Show Shopping List",
+                        Value = "shopping list"
+                    };
+                    buttons.Add(shoppingListButton);
+
+                    CardAction addItemButton = new CardAction()
+                    {
+                        Type = "imBack",
+                        Title = "2. Add Item to Shopping List",
+                        Value = "add item"
+                    };
+                    buttons.Add(addItemButton);
+
+                    CardAction markItemButton = new CardAction()
+                    {
+                        Type = "imBack",
+                        Title = "3. Mark Item Paid",
+                        Value = "mark item"
+                    };
+                    buttons.Add(markItemButton);
+
+                    CardAction deleteListButton = new CardAction()
+                    {
+                        Type = "imBack",
+                        Title = "4. Delete Shopping List",
+                        Value = "delete"
+                    };
+                    buttons.Add(deleteListButton);
+
+                    CardAction clearUserDataButton = new CardAction()
+                    {
+                        Type = "imBack",
+                        Title = "5. Clear User Data",
+                        Value = "clear"
+                    };
+                    buttons.Add(clearUserDataButton);
+
+                    heroCard = new HeroCard()
+                    {
+                        Title = "What would you like to do?",
+                        Subtitle = "",
+                        Buttons = buttons
+                    };
+
+                    attachment = heroCard.ToAttachment();
+                    reply.Attachments.Add(attachment);
+                    await connector.Conversations.ReplyToActivityAsync(reply); //Finally reply to user.
+                    return Request.CreateResponse(HttpStatusCode.OK);
+
+
+                }
+
+                #endregion
 
 
                 //CRUDE (Grocery Shopping List Features)---------------------------------
@@ -232,37 +305,6 @@ namespace New_Frontiers_Bot
                 //====================================================
                 #endregion
 
-                #region Show Shopping List (Read) [OLD version]
-                //=====================================================
-                //Show 'shopping list'.(Show all the items currently in the shopping list) [R (Read)]================================
-                if (userMessage.ToLower().Contains("debug"))
-                {
-                    List<ShoppingList> shoppingLists = await AzureManager.AzureManagerInstace.GetShoppingList();
-                    message = ""; //Clear message to be blank  
-                    string space = "     ";
-                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("**Your Grocery Shopping List**"));
-                    int count = 1;
-                    foreach (ShoppingList l in shoppingLists)
-                    {
-                        string individualPrice = "";
-                        string sumPrice = "";
-                        if (l.IndividualPrice != 0) { individualPrice = "($" + l.IndividualPrice + " each)";}
-                        if (l.IndividualPrice != 0) { sumPrice = "Total: $" + l.SumPrice; }
-
-                        message = "**" + count + ".**  " + l.Quantity + " x " + l.ItemName + space + individualPrice + space + sumPrice;
-                        if (l.StrikeOut) //If the row has strikeOut field marked as 'true', displayed message as strikeout.
-                        {
-                            message = "**" + count + ".**  ~~" + l.Quantity + " x " + l.ItemName + space + individualPrice + space + sumPrice + "~~";
-                        }
-                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
-                        count += 1;
-                    }
-                    
-                    return Request.CreateResponse(HttpStatusCode.OK);
-                }
-                //==================================================================================================================
-                #endregion
-
                 #region ShoppingListCard Display (Read)
                 if (userMessage.ToLower().Contains("shopping list"))
                 {
@@ -287,6 +329,132 @@ namespace New_Frontiers_Bot
                     await connector.Conversations.ReplyToActivityAsync(shoppingListCard); //Finally reply to user.
                     return Request.CreateResponse(HttpStatusCode.OK);
 
+                }
+                #endregion
+
+                #region Mark helper function (Hero Card to Strike out item)
+                if (userMessage.ToLower().Equals("mark item"))
+                {
+                    List<ShoppingList> shoppingLists;
+                    try
+                    {
+                        shoppingLists = await AzureManager.AzureManagerInstace.GetShoppingList(); //Grabbing all the rows from the table.
+                    }
+                    catch (Exception)
+                    {
+                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Sorry, " + userData.GetProperty<string>("userName") + " Something went wrong."));
+                        return Request.CreateResponse(HttpStatusCode.OK);
+                    }
+                    bool allStrikedOut = true; //Set to check if all the items are striked out already, if so it will not enter mark screen
+                    foreach(ShoppingList l in shoppingLists)
+                    {
+                        if (l.StrikeOut == false) { allStrikedOut = false; }
+                    }
+                    if (allStrikedOut)
+                    {
+                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("You have already bought all the items on the list.")); 
+                        return Request.CreateResponse(HttpStatusCode.OK);
+                    }
+
+                    if (shoppingLists.Count() == 0) //If the list is not empty or already been all striked out.
+                    {
+                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Your Shopping List is Currently Empty."));
+                        #region 'help' Command Panel
+
+                        reply = activity.CreateReply("");
+                        reply.Recipient = activity.From;
+                        reply.Type = "message";
+                        reply.Attachments = new List<Attachment>();
+                        buttons = new List<CardAction>();
+
+                        CardAction shoppingListButton = new CardAction()
+                        {
+                            Type = "imBack",
+                            Title = "1. Show Shopping List",
+                            Value = "shopping list"
+                        };
+                        buttons.Add(shoppingListButton);
+
+                        CardAction addItemButton = new CardAction()
+                        {
+                            Type = "imBack",
+                            Title = "2. Add Item to Shopping List",
+                            Value = "add item"
+                        };
+                        buttons.Add(addItemButton);
+
+                        CardAction markItemButton = new CardAction()
+                        {
+                            Type = "imBack",
+                            Title = "3. Mark Item Paid",
+                            Value = "mark item"
+                        };
+                        buttons.Add(markItemButton);
+
+                        CardAction deleteListButton = new CardAction()
+                        {
+                            Type = "imBack",
+                            Title = "4. Delete Shopping List",
+                            Value = "delete"
+                        };
+                        buttons.Add(deleteListButton);
+
+                        CardAction clearUserDataButton = new CardAction()
+                        {
+                            Type = "imBack",
+                            Title = "5. Clear User Data",
+                            Value = "clear"
+                        };
+                        buttons.Add(clearUserDataButton);
+
+                        heroCard = new HeroCard()
+                        {
+                            Title = "What would you like to do?",
+                            Subtitle = "",
+                            Buttons = buttons
+                        };
+
+                        attachment = heroCard.ToAttachment();
+                        reply.Attachments.Add(attachment);
+                        await connector.Conversations.ReplyToActivityAsync(reply); //Finally reply to user.
+
+
+
+
+
+                        #endregion
+                        return Request.CreateResponse(HttpStatusCode.OK);
+                    }
+                    //Creating the item selection card (user can select which one to strink out)
+                    reply = activity.CreateReply("");
+                    reply.Recipient = activity.From;
+                    reply.Type = "message";
+                    reply.Attachments = new List<Attachment>();
+                    buttons = new List<CardAction>();
+                    int count = 1;
+                    foreach (ShoppingList l in shoppingLists)
+                    {
+                        message = count + "." + l.ItemName + " (x" + l.Quantity + ") $" + l.SumPrice;
+                        CardAction button = new CardAction()
+                        {
+                            Type = "imBack",
+                            Title = message,
+                            Value = "buy " + count 
+                        };
+                        buttons.Add(button);
+                        count++;
+                    }
+                    heroCard = new HeroCard()
+                    {
+                        Title = "Select the following.",
+                        Subtitle = "",
+                        Buttons = buttons
+                    };
+
+                    attachment = heroCard.ToAttachment();
+                    reply.Attachments.Add(attachment);
+                    await connector.Conversations.ReplyToActivityAsync(reply); //Finally reply to user.
+                    return Request.CreateResponse(HttpStatusCode.OK);
                 }
                 #endregion
 
@@ -345,6 +513,7 @@ namespace New_Frontiers_Bot
                 //====================================================================
                 #endregion
 
+
                 #region Delete the shopping list (Delete)
                 if (userMessage.ToLower().Contains("delete"))
                 {
@@ -382,6 +551,33 @@ namespace New_Frontiers_Bot
                 name = userData.GetProperty<string>("UserName");
                 await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Sorry I did not understand what you said " + name + "."));
                 await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("You can type *help* to see what I can do for you."));
+
+                #region Help button
+                reply = activity.CreateReply("");
+                reply.Recipient = activity.From;
+                reply.Type = "message";
+                reply.Attachments = new List<Attachment>();
+                buttons = new List<CardAction>();
+
+                CardAction helpButton = new CardAction()
+                {
+                    Type = "imBack",
+                    Title = "Help",
+                    Value = "help"
+                };
+                buttons.Add(helpButton);
+                heroCard = new HeroCard()
+                {
+                    Title = "Press 'Help' to Learn More.",
+                    Subtitle = "",
+                    Buttons = buttons
+                };
+
+                attachment = heroCard.ToAttachment();
+                reply.Attachments.Add(attachment);
+                await connector.Conversations.ReplyToActivityAsync(reply); //Finally reply to user.
+                #endregion
+
                 return Request.CreateResponse(HttpStatusCode.OK);
                 //=====================================================
                 #endregion
