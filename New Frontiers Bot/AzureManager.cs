@@ -50,7 +50,15 @@ namespace New_Frontiers_Bot
             await this.shoppingListTable.InsertAsync(shoppingList);
         }
 
+        public async Task UpdateShoppingList(ShoppingList shoppingList)
+        {
+            await this.shoppingListTable.UpdateAsync(shoppingList);
+        }
 
+        public async Task DeleteShoppingList(ShoppingList shoppingList)
+        {
+            await this.shoppingListTable.DeleteAsync(shoppingList);
+        }
 
     }
 }

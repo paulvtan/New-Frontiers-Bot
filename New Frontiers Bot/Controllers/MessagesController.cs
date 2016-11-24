@@ -28,6 +28,7 @@ namespace New_Frontiers_Bot
 
         public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
         {
+            
 
             if (activity.Type == ActivityTypes.Message)
             {
@@ -104,128 +105,27 @@ namespace New_Frontiers_Bot
                 //=====================================================
                 #endregion
 
-                #region DEAD CODE (CREATE)
-                //CRUD MODEL--> Grocery Shopping List Features
-
-                //Add new item to the shopping list. (C [Create])
-                /*if ((userMessage.ToLower().Contains("add item")) && (userData.GetProperty<string>("itemName") == null || userData.GetProperty<string>("itemName") == ""))
+                #region User type 'help'
+                //Help command===================
+                if (userMessage.ToLower().Contains("help"))
                 {
-                    userData.SetProperty<string>("itemName", ""); //Set this propertie to empty string.
-                    string itemName = userMessage.Substring(8);
-                    itemName.Trim();
-                    userData.SetProperty<string>("itemName", itemName); //Set the properties to item name. (Remember state)
-                    userData.SetProperty<int>("quantity", 0);
-                    await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
-                    name = "**_" + itemName + "_**";
-                    string str = "Item to add to shoppin list: ";
-                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(str + name));
-                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("How many " + name + " would you like to buy?"));
-                    return Request.CreateResponse(HttpStatusCode.OK);
-                } else if (userData.GetProperty<int>("quantity") == 0 && (userData.GetProperty<string>("itemName") != null && userData.GetProperty<string>("itemName") != "")) //User input the quantity.
-                {
-                    userData.SetProperty<int>("quantity", 0); //Clear
-                    await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
-                    int quantity = 0;
-                    if (userMessage.ToLower().Equals("cancel"))
-                    {
-                        userData.SetProperty<string>("itemName", "");
-                        await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
-                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("You have cancel adding item to shopping list."));
-                        return Request.CreateResponse(HttpStatusCode.OK);
-                    }
-                    try
-                    {
-                        message = userMessage.Trim();
-                        quantity = int.Parse(message);
-                        userData.SetProperty<int>("quantity", quantity);
-                        //await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
-                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Does it get here?"));
-                    } catch (Exception e) //if the operation fails
-                    {
-                        await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
-                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Sorry, I didn't quite get that. How many would you like to buy? You can also *cancel* this operation."));
-                        return Request.CreateResponse(HttpStatusCode.OK);
-                    }
-                    string itemName = userData.GetProperty<string>("itemName");
-                    userData.SetProperty<int>("quantity", quantity); //Set the state to remember quantity.
-                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("You are adding " + quantity + " **" + itemName + "** to the shopping list."));
-                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("How much does each item cost? Otherwise you can say **done** to finalise the additon or **cancel**."));
-                    await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state -> DELETE IF BREAK
+                    string message = "**What you can ask me.**";
+                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
+                    message = "**Key word:** *shopping list* to see your shopping list.";
+                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
+                    message = "**Key word:** *add item* to start adding item to your shopping list.";
+                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
+                    message = "**Key word:** *buy [number]* to cross out bought item from the shopping list";
+                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
+                    message = "**Key word:** *clear* to erase states / user data.";
+                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
                     return Request.CreateResponse(HttpStatusCode.OK);
                 }
-                else if (userData.GetProperty<int>("quantity") != 0 && (userData.GetProperty<string>("itemName") != null && userData.GetProperty<string>("itemName") != "")) //User can input price or done or cancel.
-                {
-                    if (userMessage.ToLower().Contains("cancel")) //If the user decide to cancel
-                    {
-                        userData.SetProperty<string>("itemName", "");
-                        userData.SetProperty<int>("quantity", 0);
-                        userData.SetProperty<double>("individualPrice", 0);
-                        await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
-                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("You have cancel adding item to shopping list."));
-                        return Request.CreateResponse(HttpStatusCode.OK);
-                    }
-                    //Variable to send to EasyTable
-                    string itemName = userData.GetProperty<string>("itemName");
-                    int quantity = userData.GetProperty<int>("quantity");
-                    ShoppingList shoppingList;
-
-                    if (userMessage.ToLower().Contains("done"))
-                    {
-                        if (userData.GetProperty<double>("individualPrice") != 0)
-                        {
-                            double individualPrice = userData.GetProperty<double>("individualPrice");
-                            double sumPrice = individualPrice * quantity;
-                            shoppingList = new ShoppingList()
-                            {
-                                ItemName = itemName,
-                                Quantity = quantity,
-                                IndividualPrice = individualPrice,
-                                SumPrice = sumPrice
-                            };
-                        }
-                        else //Adding to the shopping list table without individual price and sum.
-                        {
-                            shoppingList = new ShoppingList()
-                            {
-                                ItemName = itemName,
-                                Quantity = quantity,
-                            };
-
-                        }
-                        await AzureManager.AzureManagerInstace.AddShoppingList(shoppingList);
-
-                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("The item has been added successfully to shopping list!"));
-
-                        //Clear the states back to normal.
-                        userData.SetProperty<string>("itemName", "");
-                        userData.SetProperty<int>("quantity", 0);
-                        userData.SetProperty<double>("individualPrice", 0);
-                        await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
-                        return Request.CreateResponse(HttpStatusCode.OK);
-
-                    } else //If the user decides to input individual price for the item.
-                    {
-                        try
-                        {
-                            message = userMessage.Trim();
-                            double individualPrice = double.Parse(message);
-                            userData.SetProperty<double>("individualPrice", individualPrice);
-                            await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
-                            await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("You are adding " + quantity + " **" + itemName + "** each cost $**" + individualPrice +  "** to the shopping list."));
-                            await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Would you like to add the following?"));
-                            return Request.CreateResponse(HttpStatusCode.OK);
-                        } catch (Exception e)
-                        {
-                            await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
-                            await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Sorry, I didn't quite get that. How much is each of this item? You can also add this item using *done* or *cancel* this operation."));
-                            return Request.CreateResponse(HttpStatusCode.OK);
-                        }
-                    }
 
 
-                }*/
+
+                //===============================
                 #endregion
-
 
                 //CRUDE (Grocery Shopping List Features)---------------------------------
                 //Connected to the EasyTable
@@ -237,7 +137,7 @@ namespace New_Frontiers_Bot
                     string space = "     ";
                     message = "Add item to the shopping list by specifying the following format.";
                     await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
-                    message = "**Quantity**" + space + "**Item Name**" + space + "**Price**";
+                    message = "**Quantity**" + space + "**Item**" + space + "**Price**";
                     await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
                     message = "Example: **5 Apple 1.5**";
                     await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
@@ -256,7 +156,7 @@ namespace New_Frontiers_Bot
                         itemName = userInput[1] ?? "";
                         quantity = int.Parse(userInput[0]);
                         string temp = userInput[2] ?? "0";
-                        individualPrice = int.Parse(temp);
+                        individualPrice = double.Parse(temp);
                         sumPrice = individualPrice * quantity;
                         message = "**" + quantity + "** x " + itemName + " (each cost **$" + individualPrice + "**) Total: **$" + sumPrice + "** has been added to your shopping list.";
                         await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
@@ -272,7 +172,7 @@ namespace New_Frontiers_Bot
                        
                     } catch (Exception)
                     {
-                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Something went wrong, could you please try again?"));
+                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Sorry, I didn't understand what you want to add, could you please try again?"));
                         userData.SetProperty<bool>("isAdding", false);
                         await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
                         return Request.CreateResponse(HttpStatusCode.OK);
@@ -348,12 +248,55 @@ namespace New_Frontiers_Bot
                 #endregion
 
                 #region Strike out item in the shopping list (Update)
-                //Strike out item in the shopping list (update)
+                //Strike out item in the shopping list (update)=======================
+                if (userMessage.ToLower().Contains("buy")) 
+                {
+                    string itemName;
+                    int listIndexSelect;
+                    ShoppingList updatedList;
+                    try
+                    {
+                        List<ShoppingList> shoppingLists1 = await AzureManager.AzureManagerInstace.GetShoppingList(); //Grabbing all the rows from the table.
+                        string userSelection = userMessage.Substring(3);
+                        listIndexSelect = int.Parse(userSelection.Trim());
+                        itemName = shoppingLists1[listIndexSelect - 1].ItemName;
+                        updatedList = shoppingLists1[listIndexSelect - 1];
+                        updatedList.StrikeOut = true;
+                    }
+                    catch (Exception)
+                    {
+                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Sorry, " + userData.GetProperty<string>("userName") + " I did not understand what you mean."));
+                        return Request.CreateResponse(HttpStatusCode.OK);
+                    }
+                    
+                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(listIndexSelect + ". ~~" + itemName + "~~ has been bought."));
+                    await AzureManager.AzureManagerInstace.UpdateShoppingList(updatedList); //Updated the row to the table
+                    return Request.CreateResponse(HttpStatusCode.OK);
 
-                //---------------------------------------------
+                }
+                //====================================================================
                 #endregion
-                //--------------------------------------------------------------
 
+                #region Delete the shopping list (Delete)
+                if (userMessage.ToLower().Contains("delete"))
+                {
+                    try
+                    {
+                        List<ShoppingList> shoppingLists1 = await AzureManager.AzureManagerInstace.GetShoppingList(); //Grabbing all the rows from the table.
+                        foreach(ShoppingList list in shoppingLists1)
+                        {
+                            await AzureManager.AzureManagerInstace.DeleteShoppingList(list);
+                        }
+                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Your grocery shopping list has been deleted."));
+                        return Request.CreateResponse(HttpStatusCode.OK);
+                    } catch (Exception)
+                    {
+                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Sorry, " + userData.GetProperty<string>("userName") + " something went wrong."));
+                        return Request.CreateResponse(HttpStatusCode.OK);
+                    }
+                }
+                #endregion
+                //-----------------------------------------------------------------------
                 //General
 
                 #region Reply to Users saying "hi, hey, hello" and unrecognised command
