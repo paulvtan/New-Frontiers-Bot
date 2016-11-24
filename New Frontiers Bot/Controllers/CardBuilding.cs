@@ -118,21 +118,24 @@ namespace New_Frontiers_Bot.Controllers
         //Return card attachment so you can attach this to the message back to user.
         public static Attachment GetHelpCard()
         {
+            string weatherIconUrl = "https://raw.githubusercontent.com/paulvtan/New-Frontiers-Bot/master/weatherIcon.png";
             string shoppingCartIconUrl = "https://raw.githubusercontent.com/paulvtan/New-Frontiers-Bot/master/shoppingCart.png";
             string plusIconUrl = "https://raw.githubusercontent.com/paulvtan/New-Frontiers-Bot/master/plus.png";
             string tickIconUrl = "https://raw.githubusercontent.com/paulvtan/New-Frontiers-Bot/master/GreenTick.png";
             string deleteIconUrl = "https://raw.githubusercontent.com/paulvtan/New-Frontiers-Bot/master/delete.png";
             string clearIconUrl = "https://raw.githubusercontent.com/paulvtan/New-Frontiers-Bot/master/Remove%20User%20Male-64.png";
             List<ReceiptItem> items = new List<ReceiptItem>();
-            ReceiptItem x = new ReceiptItem("1. Display Shopping List", image: new CardImage(url: shoppingCartIconUrl));
+            ReceiptItem x = new ReceiptItem("1. Display Today Weather", image: new CardImage(url: weatherIconUrl));
             items.Add(x);
-            x = new ReceiptItem("2. Add Item", image: new CardImage(url: plusIconUrl));
+            x = new ReceiptItem("2. Display Shopping List", image: new CardImage(url: shoppingCartIconUrl));
             items.Add(x);
-            x = new ReceiptItem("3. Mark As Paid", image: new CardImage(url: tickIconUrl));
+            x = new ReceiptItem("3. Add Item", image: new CardImage(url: plusIconUrl));
             items.Add(x);
-            x = new ReceiptItem("4. Delete This List", image: new CardImage(url: deleteIconUrl));
+            x = new ReceiptItem("4. Mark As Paid", image: new CardImage(url: tickIconUrl));
             items.Add(x);
-            x = new ReceiptItem("5. Clear User Data", image: new CardImage(url: clearIconUrl));
+            x = new ReceiptItem("5. Delete This List", image: new CardImage(url: deleteIconUrl));
+            items.Add(x);
+            x = new ReceiptItem("6. Clear User Data", image: new CardImage(url: clearIconUrl));
             items.Add(x);
 
             CardAction commandPanel = new CardAction()

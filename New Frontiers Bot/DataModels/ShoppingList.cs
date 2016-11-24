@@ -26,5 +26,8 @@ namespace New_Frontiers_Bot.DataModels
         [JsonProperty(PropertyName = "strikeOut")]
         public bool StrikeOut { get; set; }
 
+        [JsonProperty(PropertyName = "deleted")]
+        public bool Deleted { get; set; }
+
     }
 }

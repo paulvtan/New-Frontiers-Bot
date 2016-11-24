@@ -162,10 +162,18 @@ namespace New_Frontiers_Bot
                     reply.Attachments = new List<Attachment>();
                     buttons = new List<CardAction>();
 
+                    CardAction weatherButton = new CardAction()
+                    {
+                        Type = "imBack",
+                        Title = "1. Check Today Weather",
+                        Value = "weather"
+                    };
+                    buttons.Add(weatherButton);
+
                     CardAction shoppingListButton = new CardAction()
                     {
                         Type = "imBack",
-                        Title = "1. Show Shopping List",
+                        Title = "2. Show Shopping List",
                         Value = "shopping list"
                     };
                     buttons.Add(shoppingListButton);
@@ -173,7 +181,7 @@ namespace New_Frontiers_Bot
                     CardAction addItemButton = new CardAction()
                     {
                         Type = "imBack",
-                        Title = "2. Add Item to Shopping List",
+                        Title = "3. Add Item to Shopping List",
                         Value = "add item"
                     };
                     buttons.Add(addItemButton);
@@ -181,7 +189,7 @@ namespace New_Frontiers_Bot
                     CardAction markItemButton = new CardAction()
                     {
                         Type = "imBack",
-                        Title = "3. Mark Item Paid",
+                        Title = "4. Mark Item Paid",
                         Value = "mark item"
                     };
                     buttons.Add(markItemButton);
@@ -189,7 +197,7 @@ namespace New_Frontiers_Bot
                     CardAction deleteListButton = new CardAction()
                     {
                         Type = "imBack",
-                        Title = "4. Delete Shopping List",
+                        Title = "5. Delete Shopping List",
                         Value = "delete"
                     };
                     buttons.Add(deleteListButton);
@@ -197,7 +205,7 @@ namespace New_Frontiers_Bot
                     CardAction clearUserDataButton = new CardAction()
                     {
                         Type = "imBack",
-                        Title = "5. Clear User Data",
+                        Title = "6. Clear User Data",
                         Value = "clear"
                     };
                     buttons.Add(clearUserDataButton);
@@ -217,6 +225,91 @@ namespace New_Frontiers_Bot
 
                 }
 
+                #endregion
+
+                #region Weather Report
+                if (userMessage.ToLower().Contains("weather") && !userData.GetProperty<bool>("isWeatherRequest"))
+                {
+                    userData.SetProperty("isWeatherRequest", true);
+                    await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
+                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Please tell me the city you are currently at."));
+                    return Request.CreateResponse(HttpStatusCode.OK);
+                }
+
+                if (userData.GetProperty<bool>("isWeatherRequest") && userMessage.ToLower().Contains("weather"))
+                {
+                    if (!userData.GetProperty<bool>("cityIsSet"))
+                    {
+                        userData.SetProperty("cityIsSet", true);
+                        userData.SetProperty("city", activity.Text.Trim());
+                        await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
+                        
+                    }
+                    activity.Text = userData.GetProperty<string>("city");
+                    WeatherObject.RootObject rootObject;
+                    HttpClient client = new HttpClient();
+                    string x = await client.GetStringAsync(new Uri("http://api.openweathermap.org/data/2.5/weather?q=" + activity.Text + "&units=metric&APPID=4f33e9f2a351942d172850c6b9b05595"));
+
+                    rootObject = JsonConvert.DeserializeObject<WeatherObject.RootObject>(x);
+
+                    string cityName = rootObject.name;
+                    string temp = rootObject.main.temp + "°C";
+                    string pressure = rootObject.main.pressure + "hPa";
+                    string humidity = rootObject.main.humidity + "%";
+                    string wind = rootObject.wind.deg + "°";
+
+                   
+                    // return our reply to the user
+                    string icon = rootObject.weather[0].icon;
+                    int cityId = rootObject.id;
+
+                    // return our reply to the user
+                    Activity weatherReply = activity.CreateReply($"Current weather for {cityName}");
+                    weatherReply.Recipient = activity.From;
+                    weatherReply.Type = "message";
+                    weatherReply.Attachments = new List<Attachment>();
+
+                    List<CardImage> cardImages = new List<CardImage>();
+                    cardImages.Add(new CardImage(url: "http://openweathermap.org/img/w/" + icon + ".png"));
+
+                    List<CardAction> cardButtons = new List<CardAction>();
+                    CardAction plButton = new CardAction()
+                    {
+                        Value = "https://openweathermap.org/city/" + cityId,
+                        Type = "openUrl",
+                        Title = "More Info"
+                    };
+                    cardButtons.Add(plButton);
+
+                    ThumbnailCard plCard = new ThumbnailCard()
+                    {
+                        Title = cityName + " Weather",
+                        Subtitle = "Temperature " + temp,
+                        Images = cardImages,
+                        Buttons = cardButtons
+                    };
+
+                    Attachment plAttachment = plCard.ToAttachment();
+                    weatherReply.Attachments.Add(plAttachment);
+                    await connector.Conversations.SendToConversationAsync(weatherReply);
+
+                    //Create warning message.
+                    string message = "**Condition: **" + rootObject.weather[0].description; 
+                    await connector.Conversations.SendToConversationAsync(activity.CreateReply(message));
+                    int code = rootObject.weather[0].id;
+
+                    if (rootObject.weather[0].id >= 800  && rootObject.weather[0].id < 900 )
+                    {
+                        message = "**Notes:** It's a fine day, enjoy being outside " + userData.GetProperty<string>("userName") + "."; 
+                    } else
+                    {
+                        message = "Weather condition, is not going to be so great today. Staying inside or carrying umbrella is advisable.";
+                    }
+                    await connector.Conversations.SendToConversationAsync(activity.CreateReply(message));
+                    await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
+                    return Request.CreateResponse(HttpStatusCode.OK);
+                }
+                
                 #endregion
 
 
@@ -345,17 +438,6 @@ namespace New_Frontiers_Bot
                         await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Sorry, " + userData.GetProperty<string>("userName") + " Something went wrong."));
                         return Request.CreateResponse(HttpStatusCode.OK);
                     }
-                    bool allStrikedOut = true; //Set to check if all the items are striked out already, if so it will not enter mark screen
-                    foreach(ShoppingList l in shoppingLists)
-                    {
-                        if (l.StrikeOut == false) { allStrikedOut = false; }
-                    }
-                    if (allStrikedOut)
-                    {
-                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("You have already bought all the items on the list.")); 
-                        return Request.CreateResponse(HttpStatusCode.OK);
-                    }
-
                     if (shoppingLists.Count() == 0) //If the list is not empty or already been all striked out.
                     {
                         await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Your Shopping List is Currently Empty."));
@@ -367,10 +449,18 @@ namespace New_Frontiers_Bot
                         reply.Attachments = new List<Attachment>();
                         buttons = new List<CardAction>();
 
+                        CardAction weatherButton = new CardAction()
+                        {
+                            Type = "imBack",
+                            Title = "1. Check Today Weather",
+                            Value = "weather"
+                        };
+                        buttons.Add(weatherButton);
+
                         CardAction shoppingListButton = new CardAction()
                         {
                             Type = "imBack",
-                            Title = "1. Show Shopping List",
+                            Title = "2. Show Shopping List",
                             Value = "shopping list"
                         };
                         buttons.Add(shoppingListButton);
@@ -378,7 +468,7 @@ namespace New_Frontiers_Bot
                         CardAction addItemButton = new CardAction()
                         {
                             Type = "imBack",
-                            Title = "2. Add Item to Shopping List",
+                            Title = "3. Add Item to Shopping List",
                             Value = "add item"
                         };
                         buttons.Add(addItemButton);
@@ -386,7 +476,7 @@ namespace New_Frontiers_Bot
                         CardAction markItemButton = new CardAction()
                         {
                             Type = "imBack",
-                            Title = "3. Mark Item Paid",
+                            Title = "4. Mark Item Paid",
                             Value = "mark item"
                         };
                         buttons.Add(markItemButton);
@@ -394,7 +484,7 @@ namespace New_Frontiers_Bot
                         CardAction deleteListButton = new CardAction()
                         {
                             Type = "imBack",
-                            Title = "4. Delete Shopping List",
+                            Title = "5. Delete Shopping List",
                             Value = "delete"
                         };
                         buttons.Add(deleteListButton);
@@ -402,7 +492,7 @@ namespace New_Frontiers_Bot
                         CardAction clearUserDataButton = new CardAction()
                         {
                             Type = "imBack",
-                            Title = "5. Clear User Data",
+                            Title = "6. Clear User Data",
                             Value = "clear"
                         };
                         buttons.Add(clearUserDataButton);
@@ -425,6 +515,18 @@ namespace New_Frontiers_Bot
                         #endregion
                         return Request.CreateResponse(HttpStatusCode.OK);
                     }
+                    bool allStrikedOut = true; //Set to check if all the items are striked out already, if so it will not enter mark screen
+                    foreach(ShoppingList l in shoppingLists)
+                    {
+                        if (l.StrikeOut == false && l.Deleted == false) { allStrikedOut = false; }
+                    }
+                    if (allStrikedOut)
+                    {
+                        await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("You have already bought all the items on the list.")); 
+                        return Request.CreateResponse(HttpStatusCode.OK);
+                    }
+
+                    
                     //Creating the item selection card (user can select which one to strink out)
                     reply = activity.CreateReply("");
                     reply.Recipient = activity.From;
@@ -434,14 +536,19 @@ namespace New_Frontiers_Bot
                     int count = 1;
                     foreach (ShoppingList l in shoppingLists)
                     {
-                        message = count + "." + l.ItemName + " (x" + l.Quantity + ") $" + l.SumPrice;
-                        CardAction button = new CardAction()
+                        if (!l.StrikeOut)
                         {
-                            Type = "imBack",
-                            Title = message,
-                            Value = "buy " + count 
-                        };
-                        buttons.Add(button);
+
+                            message = count + "." + l.ItemName + " (x" + l.Quantity + ") $" + l.SumPrice;
+                            CardAction button = new CardAction()
+                            {
+                                Type = "imBack",
+                                Title = message,
+                                Value = "buy " + count
+                            };
+                            buttons.Add(button);
+                            
+                        }
                         count++;
                     }
                     heroCard = new HeroCard()

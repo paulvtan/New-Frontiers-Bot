@@ -139,6 +139,7 @@
     <Compile Include="Controllers\CardBuilding.cs" />
     <Compile Include="Controllers\MessagesController.cs" />
     <Compile Include="DataModels\ShoppingList.cs" />
+    <Compile Include="DataModels\WeatherObject.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
