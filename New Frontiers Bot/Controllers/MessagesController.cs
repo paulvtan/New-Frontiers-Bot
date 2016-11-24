@@ -105,6 +105,7 @@ namespace New_Frontiers_Bot
                 //=====================================================
                 #endregion
 
+                /*
                 #region User type 'help'
                 //Help command===================
                 if (userMessage.ToLower().Contains("help"))
@@ -121,13 +122,30 @@ namespace New_Frontiers_Bot
                     await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
                     return Request.CreateResponse(HttpStatusCode.OK);
                 }
-
+                
 
 
                 //===============================
                 #endregion
+                */
 
-                
+                #region User Type 'help'
+                if (userMessage.ToLower().Contains("help"))
+                {
+
+                    Activity helpCard = activity.CreateReply("");
+                    helpCard.Recipient = activity.From;
+                    helpCard.Type = "message";
+                    helpCard.Attachments = new List<Attachment>();
+                    Attachment helpCardAttatchment = Controllers.CardBuilding.GetHelpCard();
+                    helpCard.Attachments.Add(helpCardAttatchment);
+                    await connector.Conversations.ReplyToActivityAsync(helpCard); //Finally reply to user.
+                    return Request.CreateResponse(HttpStatusCode.OK);
+
+                }
+                #endregion
+
+
 
                 //CRUDE (Grocery Shopping List Features)---------------------------------
                 //Connected to the EasyTable
@@ -214,7 +232,7 @@ namespace New_Frontiers_Bot
                 //====================================================
                 #endregion
 
-                #region Show Shopping List (Read)
+                #region Show Shopping List (Read) [OLD version]
                 //=====================================================
                 //Show 'shopping list'.(Show all the items currently in the shopping list) [R (Read)]================================
                 if (userMessage.ToLower().Contains("debug"))
