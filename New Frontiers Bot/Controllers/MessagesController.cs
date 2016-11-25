@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using Microsoft.WindowsAzure.MobileServices;
 using New_Frontiers_Bot.DataModels;
+using Microsoft.ProjectOxford.Vision;
 
 namespace New_Frontiers_Bot
 {
@@ -59,7 +60,30 @@ namespace New_Frontiers_Bot
                 }
                 //=====================================================
                 #endregion
-                  
+
+
+                #region Vision API.
+                if (userMessage.ToLower().Contains("describe"))
+                {
+                    userData.SetProperty("isUrl", true);
+                    await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
+                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("The photo url you want me to describe"));
+                    return Request.CreateResponse(HttpStatusCode.OK);
+                }
+                if (userData.GetProperty<bool>("isUrl"))
+                {
+                    userData.SetProperty("isUrl", false);
+                    await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
+                    var visionClient = new VisionServiceClient("f551e31a0d1c40259727223439b0f33a");
+                    var analysisResult = await visionClient.DescribeAsync(activity.Text.Substring(1));
+                    message = "I see " + analysisResult.Description.Captions[0].Text;
+                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(message));
+                    return Request.CreateResponse(HttpStatusCode.OK);
+                }
+
+
+                #endregion
+
                 #region Learning the user name
                 //3. (First time) Greeting User and Learn the user name.===============
                 if (!userData.GetProperty<bool>("SendGreeting")) //First time greeting the user.
@@ -311,6 +335,8 @@ namespace New_Frontiers_Bot
                 }
 
                 #endregion
+
+               
 
 
                 //CRUDE (Grocery Shopping List Features)---------------------------------
