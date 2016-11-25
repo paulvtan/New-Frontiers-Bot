@@ -64,7 +64,9 @@ namespace New_Frontiers_Bot
                 //3. (First time) Greeting User and Learn the user name.===============
                 if (!userData.GetProperty<bool>("SendGreeting")) //First time greeting the user.
                 {
-                    string welcomeMessage = "Hi! I am the New Frontiers Assistance. What would you like to be known as?";
+                    string welcomeMessage = "Hi! I am the New Frontiers Assistance. You can called me Fronty!";
+                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(welcomeMessage));
+                    welcomeMessage = "What is your name?";
                     await connector.Conversations.ReplyToActivityAsync(activity.CreateReply(welcomeMessage));
                     userData.SetProperty<bool>("SendGreeting", true); //Set the properties of sendGreeting to true as already greet once.
                     await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
@@ -231,21 +233,15 @@ namespace New_Frontiers_Bot
                 if (userMessage.ToLower().Contains("weather") && !userData.GetProperty<bool>("isWeatherRequest"))
                 {
                     userData.SetProperty("isWeatherRequest", true);
+                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Please enter the city you are currently in."));
                     await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
-                    await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Please tell me the city you are currently at."));
                     return Request.CreateResponse(HttpStatusCode.OK);
-                }
 
-                if (userData.GetProperty<bool>("isWeatherRequest") && userMessage.ToLower().Contains("weather"))
+                }
+                
+                if (userData.GetProperty<bool>("isWeatherRequest"))
                 {
-                    if (!userData.GetProperty<bool>("cityIsSet"))
-                    {
-                        userData.SetProperty("cityIsSet", true);
-                        userData.SetProperty("city", activity.Text.Trim());
-                        await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
-                        
-                    }
-                    activity.Text = userData.GetProperty<string>("city");
+                    activity.Text.Trim();
                     WeatherObject.RootObject rootObject;
                     HttpClient client = new HttpClient();
                     string x = await client.GetStringAsync(new Uri("http://api.openweathermap.org/data/2.5/weather?q=" + activity.Text + "&units=metric&APPID=4f33e9f2a351942d172850c6b9b05595"));
@@ -298,18 +294,22 @@ namespace New_Frontiers_Bot
                     await connector.Conversations.SendToConversationAsync(activity.CreateReply(message));
                     int code = rootObject.weather[0].id;
 
-                    if (rootObject.weather[0].id >= 800  && rootObject.weather[0].id < 900 )
+                    if (rootObject.weather[0].id >= 800 && rootObject.weather[0].id < 900)
                     {
-                        message = "**Notes:** It's a fine day, enjoy being outside " + userData.GetProperty<string>("userName") + "."; 
-                    } else
+                        message = "**Notes:** It's a fine day, enjoy being outside " + userData.GetProperty<string>("userName") + ".";
+                    }
+                    else
                     {
                         message = "Weather condition, is not going to be so great today. Staying inside or carrying umbrella is advisable.";
                     }
+
                     await connector.Conversations.SendToConversationAsync(activity.CreateReply(message));
+                    userData.SetProperty("isWeatherRequest", false);
                     await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData); //Update state
                     return Request.CreateResponse(HttpStatusCode.OK);
+
                 }
-                
+
                 #endregion
 
 
