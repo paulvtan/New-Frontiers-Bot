@@ -17,7 +17,7 @@ namespace New_Frontiers_Bot
         //Constructor
         private AzureManager()
         {
-            this.client = new MobileServiceClient("http://blankwebapptohosteasytable.azurewebsites.net/");
+            this.client = new MobileServiceClient("http://newfrontiersassistanceeasytable.azurewebsites.net");
             this.shoppingListTable = this.client.GetTable<ShoppingList>(); //This grab the table from the web app.
         }
 
